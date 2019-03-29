@@ -12,7 +12,7 @@ const app = express()
 app.use(bodyParser.json())
 
 /**
- * 连接MySQL数据库
+ * 创建MySQL数据库连接池
  */
 const pool = mysql.createPool({
   host     : 'localhost',
@@ -107,12 +107,15 @@ app.get('/info', async (req, res) => {
     const userSqlData = await sqlQuery(`SELECT * from user where user_name="${username}"`)
     const roleIdSqlData = await sqlQuery(`SELECT role_id from user_role where user_id="${userSqlData[0].user_id}"`)
     let roles = []
+    let menus = []
     const name = userSqlData[0].name
     const userId = userSqlData[0].user_id
     for (let i = 0; i < roleIdSqlData.length; i++) {
       const roleId = roleIdSqlData[i].role_id
       let role = await sqlQuery(`SELECT name from role where id="${roleId}"`)
       roles.push(role[0].name)
+      let menu = await sqlQuery(`SELECT * from menu where id in ( SELECT menu_id from role_menu where role_id="${roleId}" )`)
+      menus = menus.concat(menu)
     }
     res.send({
       code: 200,
@@ -120,6 +123,8 @@ app.get('/info', async (req, res) => {
         name,
         userId,
         roles,
+        menus,
+        avatar: 'https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif',
       },
       message: '请求成功！'
     })
